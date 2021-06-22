@@ -1,0 +1,31 @@
+{
+    "name": "PBNJ",
+    "description": "Capstone Project",
+    "version": "0.0.1",
+    "manifest_version": 3,
+    "icons": {
+        "16": "./images/icons/phone16.png",
+        "32": "./images/icons/phone32.png"
+    },
+    "background": {
+        "service_worker": "./background.js"
+    },
+    "action": {
+        "default_popup": "./popup.html",
+        "default_icons": {
+            "16": "./images/icons/phone16.png",
+            "32": "./images/icons/phone32.png"
+        }
+    },
+    "options_page": "./options.html",
+    "permissions": [
+        "activeTab",
+        "tabs",
+        "storage",
+        "scripting"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+        ]
+    
+}
