@@ -4,8 +4,9 @@
     "version": "0.0.1",
     "manifest_version": 3,
     "icons": {
-        "16": "./images/icons/phone16.png",
-        "32": "./images/icons/phone32.png"
+        "16": "./images/icons/PBNJ16.png",
+        "32": "./images/icons/PBNJ32.png",
+        "64": "./images/icons/PBNJ64.png"
     },
     "background": {
         "service_worker": "./background.js"
@@ -13,8 +14,9 @@
     "action": {
         "default_popup": "./popup.html",
         "default_icons": {
-            "16": "./images/icons/phone16.png",
-            "32": "./images/icons/phone32.png"
+            "16": "./images/icons/PBNJ16.png",
+            "32": "./images/icons/PBNJ32.png",
+            "64": "./images/icons/PBNJ64.png"
         }
     },
     "options_page": "./options.html",

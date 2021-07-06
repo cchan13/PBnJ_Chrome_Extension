@@ -8,11 +8,24 @@ chrome.storage.local.get("name", data => {
 
 });
 
+const getTab = () =>
+new Promise(resolve => {
+    chrome.tabs.query(
+        {
+            active: true,
+            currentWindow: true
+        },
+        tabs => resolve(tabs[0])
+    );
+});
+
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     // console.log(tabId);
     // console.log(changeInfo);
     // console.log(tab);
     if (changeInfo.status === 'complete' && /^http/.test(tab.url)) {
+
+
         chrome.scripting.insertCSS({
             target: { tabId: tabId },
             files: ["./foreground_styles.css"]
