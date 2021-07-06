@@ -113,12 +113,15 @@
 
         div.summary{
             padding-right: 2%;
+            width: 45%;
         }
 
         #bias_score{
             color:grey;
         }
-
+        span.biascolor{
+            color: grey;
+        }
         /* svg.line{
             height: 6%;
             width: 100%;
@@ -133,7 +136,9 @@
 <body>
     <div class = "wrapper1">
     <div class = "topbar" tabindex="-1">Political Bias in Journalism</div>
-    <div class="biasis"> Bias score is <span id = "bias_score">X</span> </div>
+    <!-- <div class="biasis"> Bias score is <span id = "bias_score">X</span> </div> -->
+    <div class="biasis"> Bias score is <span><span class="biascolor" id="score">58</span></span> </div>
+
     <div class="diagram">
         <img src = "./images/diagram.png" alt = "diagram" width = "600">
     </div>
@@ -151,7 +156,10 @@
     </div> -->
     <div class = "content"> 
         <div class = "summary">Here is an unbiased summary of the article that gives you the facts because our model is really just that great. Here is an unbiased summary of the article that gives you the facts because our model is really just that great. Here is an unbiased summary of the article that gives you the facts because our model is really just that great.</div>
-        <div>Here is an unbiased summary of the article that gives you the facts because our model is really just that great. Here is an unbiased summary of the article that gives you the facts because our model is really just that great. Here is an unbiased summary of the article that gives you the facts because our model is really just that great.</div>
+        <div class = "summary"><span class="biascolor" >Other source 0:</span>
+        <br>
+        <span class="biascolor" >Other source 1:</span>
+    </div>
 
     </div>
 </div>

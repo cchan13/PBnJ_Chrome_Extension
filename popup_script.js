@@ -54,6 +54,23 @@ chrome.runtime.sendMessage({
     if (response.message === 'success'){
         // init();
         document.querySelector('div.topbar').innerHTML = `  URL: ${getURL()}`;
+        var currScoretext = document.getElementById("score");
+        newscore = getScore()
+        currScoretext.innerHTML = newscore.toString();
+
+        // currColortext = document.getElementsByClassName('biascolor');
+        // for (const text in currColortext) {
+        //     text.style.color = changeColor(newscore);
+        // }
+        Array.from(document.getElementsByClassName("biascolor")).forEach(
+            function(element, index, array) {
+                // do stuff
+                element.style.color = changeColor(newscore);
+            }
+        );
+        // currColortext.innerHTML = 'new text here';
+
+        // $('.biascolor').css('color', changeColor(newscore));
     }
 });
 
@@ -61,35 +78,69 @@ chrome.runtime.sendMessage({
 
 
 
-
+function getScore(){
+    return 60
+}
 
 // color grading: https://stackoverflow.com/questions/11849308/generate-colors-between-red-and-green-for-an-input-range
 
-// function Interpolate(start, end, steps, count) {
-//     var s = start,
-//         e = end,
-//         final = s + (((e - s) / steps) * count);
-//     return Math.floor(final);
-// }
+function Interpolate(start, end, steps, count) {
+    var s = start,
+        e = end,
+        final = s + (((e - s) / steps) * count);
+    return Math.floor(final);
+}
 
-// function Color(_r, _g, _b) {
-//     var r, g, b;
-//     var setColors = function(_r, _g, _b) {
-//         r = _r;
-//         g = _g;
-//         b = _b;
-//     };
+function Color(_r, _g, _b) {
+    var r, g, b;
+    var setColors = function(_r, _g, _b) {
+        r = _r;
+        g = _g;
+        b = _b;
+    };
 
-//     setColors(_r, _g, _b);
-//     this.getColors = function() {
-//         var colors = {
-//             r: r,
-//             g: g,
-//             b: b
-//         };
-//         return colors;
-//     };
-// }
+    setColors(_r, _g, _b);
+    this.getColors = function() {
+        var colors = {
+            r: r,
+            g: g,
+            b: b
+        };
+        return colors;
+    };
+}
+
+function changeColor(score) {
+
+        var self = this,
+            // span = $(self).parent("span"),
+            val = score,
+            red = new Color(232, 9, 26),
+            grey = new Color(128, 128, 128),
+            blue = new Color(30,144,255),
+            start = blue,
+            end = grey;
+
+        // $(".value", span).text(val);
+
+        if (val > 50) {
+            start = grey,
+                end = red;
+            val = val % 51;
+        }
+        var startColors = start.getColors(),
+            endColors = end.getColors();
+        var r = Interpolate(startColors.r, endColors.r, 50, val);
+        var g = Interpolate(startColors.g, endColors.g, 50, val);
+        var b = Interpolate(startColors.b, endColors.b, 50, val);
+
+        color = "rgb(" + r + "," + g + "," + b + ")";
+        return color;
+        // span.css({
+        //     color: "rgb(" + r + "," + g + "," + b + ")"
+        // });
+    }
+
 
 // $(document).on({
 //     change: function(e) {
