@@ -55,9 +55,10 @@ chrome.runtime.sendMessage({
         // init();
         document.querySelector('div.topbar').innerHTML = `  URL: ${getURL()}`;
         var currScoretext = document.getElementById("score");
-        newscore = getScore()
+        newscore = getScore();
+        newinterval = getInterval();
         currScoretext.innerHTML = newscore.toString();
-
+        drawcircle(newscore, newinterval);
         // currColortext = document.getElementsByClassName('biascolor');
         // for (const text in currColortext) {
         //     text.style.color = changeColor(newscore);
@@ -77,9 +78,55 @@ chrome.runtime.sendMessage({
 
 
 
+function drawcircle(score, interval) {
+    // c=document.getElementById("diagramcanvas");
+    // ctx=c.getContext("2d");
+    // img=document.getElementById("scream");  
+    // ctx.drawImage(img,10,10);  
+    canvas = document.getElementById('diagramcanvas');
+    context = canvas.getContext('2d');
+  
+    context.beginPath();
+    // // leftmost
+    // context.arc(45, 34, 8, 0, 2* Math.PI, true)
+    // // rightmost
+    // context.arc(655, 34, 8, 0, 2* Math.PI, true)
+    // // centermost
+    // context.arc(350, 34, 8, 0, 2* Math.PI, true)
+    context.arc(getX(score, interval), 34, 8, 0, 2* Math.PI, true)
+
+    // context.circle(188, 50, 200, 100);
+    context.fillStyle = changeColor(score);
+    context.fill();
+    // context.lineWidth = 7;
+    // context.strokeStyle = 'black';
+    // context.stroke();
+  }
+
+  function getX(score, interval){
+      if(interval === "leftcenter"){
+        x = (score/100)*(350-45)+45;
+        return x;
+      };
+      if(interval === "rightcenter"){
+        x = (score/100)*(655-350)+350;
+        return x;
+      };
+      if(interval === "leftright"){
+        x = (score/100)*(655-45)+45;
+        return x;
+      };
+
+  }
+
+
 
 function getScore(){
-    return 60
+    return 4
+}
+
+function getInterval(){
+    return "leftright"
 }
 
 // color grading: https://stackoverflow.com/questions/11849308/generate-colors-between-red-and-green-for-an-input-range
