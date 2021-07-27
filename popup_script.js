@@ -129,7 +129,7 @@ chrome.runtime.sendMessage({
                             Array.from(document.getElementsByClassName("biascolor")).forEach(
                                 function(element, index, array) {
                                     // do stuff
-                                    element.style.color = colorScore(showscore, newinterval);
+                                    element.style.color = getColorGradient(showscore, newinterval);
                                 }
                             );
                     // Array.from(document.getElementsByClassName("biascolor")).forEach(
@@ -215,7 +215,7 @@ function drawcircle(score, interval) {
     context.arc(getX(score, interval), 34, 8, 0, 2* Math.PI, true)
 
     // context.circle(188, 50, 200, 100);
-    context.fillStyle = colorScore(score, newinterval);
+    context.fillStyle = getColorGradient(score, newinterval);
     context.fill();
     // context.lineWidth = 7;
     // context.strokeStyle = 'black';
@@ -329,7 +329,7 @@ function colorScore(score, interval) {
             // span = $(self).parent("span"),
             val = score,
             red = new Color(232, 9, 26),
-            grey = new Color(128, 128, 128),
+            grey = new Color(200, 200, 200),
             blue = new Color(30,144,255),
             bluegrey = new Color(109, 135, 190),
             redgrey = new Color(190, 94, 78),
@@ -363,12 +363,68 @@ function colorScore(score, interval) {
         var b = Interpolate(startColors.b, endColors.b, 50, val);
 
         color = "rgb(" + r + "," + g + "," + b + ")";
+        console.log(color);
         return color;
         // span.css({
         //     color: "rgb(" + r + "," + g + "," + b + ")"
         // });
     }
 
+// https://stackoverflow.com/questions/3080421/javascript-color-gradient
+
+function getColorGradient(score, interval) {
+    if (interval === "leftcenter"){
+        end_color = "#1E90FF"; //blue
+        start_color = "#808080"; //grey
+        // end = new Color(30,144,255);
+        // start = new Color(109, 135, 190);
+    }
+    if (interval === "rightcenter"){
+        end_color = "#FF091A"; //red
+        start_color = "#808080"; //grey
+        // start = new Color(190, 94, 78);
+        // end = new Color(232, 128, 128);
+    }
+   // strip the leading # if it's there
+   start_color = start_color.replace(/^\s*#|\s*$/g, '');
+   end_color = end_color.replace(/^\s*#|\s*$/g, '');
+
+   // convert 3 char codes --> 6, e.g. `E0F` --> `EE00FF`
+   if(start_color.length == 3){
+     start_color = start_color.replace(/(.)/g, '$1$1');
+   }
+
+   if(end_color.length == 3){
+     end_color = end_color.replace(/(.)/g, '$1$1');
+   }
+
+   // get colors
+   var start_red = parseInt(start_color.substr(0, 2), 16),
+       start_green = parseInt(start_color.substr(2, 2), 16),
+       start_blue = parseInt(start_color.substr(4, 2), 16);
+
+   var end_red = parseInt(end_color.substr(0, 2), 16),
+       end_green = parseInt(end_color.substr(2, 2), 16),
+       end_blue = parseInt(end_color.substr(4, 2), 16);
+
+   // calculate new color
+   var diff_red = end_red - start_red;
+   var diff_green = end_green - start_green;
+   var diff_blue = end_blue - start_blue;
+
+   var percent = score*0.01
+
+   diff_red = ( (diff_red * percent) + start_red ).toString(16).split('.')[0];
+   diff_green = ( (diff_green * percent) + start_green ).toString(16).split('.')[0];
+   diff_blue = ( (diff_blue * percent) + start_blue ).toString(16).split('.')[0];
+
+   // ensure 2 digits by color
+   if( diff_red.length == 1 ) diff_red = '0' + diff_red
+   if( diff_green.length == 1 ) diff_green = '0' + diff_green
+   if( diff_blue.length == 1 ) diff_blue = '0' + diff_blue
+
+   return '#' + diff_red + diff_green + diff_blue;
+ };
 
 
 
