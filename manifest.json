@@ -29,7 +29,8 @@
     "host_permissions": [
         "<all_urls>",
         "https://u2eedde0w9.execute-api.us-west-2.amazonaws.com/*",
-        "https://1tn5xbbrz0.execute-api.us-west-2.amazonaws.com/*"
+        "https://1tn5xbbrz0.execute-api.us-west-2.amazonaws.com/*",
+        "https://fotuh2doc8.execute-api.us-west-1.amazonaws.com/*"
         ]
     
 }

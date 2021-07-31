@@ -48,6 +48,7 @@ function getURL(){
 
 console.log("URL: " + getURL())
 var headline, time, articletext, label, problist, labelprob, newinterval, showscore;
+var maxsents, maxlabels, maxprobs, probcenter, probleft, probright, numcenter, numleft, numright;
 chrome.runtime.sendMessage({
     message: "get_name"
 }, response => {
@@ -59,8 +60,9 @@ chrome.runtime.sendMessage({
         // newinterval = getInterval();
         // currScoretext.innerHTML = newscore.toString();
         // drawcircle(newscore, newinterval);
+        // fetch('https://1tn5xbbrz0.execute-api.us-west-2.amazonaws.com/getstuff?url='+getURL())
 
-        fetch('https://1tn5xbbrz0.execute-api.us-west-2.amazonaws.com/getstuff?url='+getURL())
+        fetch('https://fotuh2doc8.execute-api.us-west-1.amazonaws.com/gettext?url='+getURL())
           .then(
             function(response) {
               if (response.status !== 200) {
@@ -71,6 +73,8 @@ chrome.runtime.sendMessage({
               }
 
 
+            var senttop = document.getElementById("sentheader");
+            senttop.innerHTML = "Sentence-Level Analysis: Most Biased";
               // Examine the text in the response
               response.json().then(function(data) {
                 console.log(data);
@@ -87,7 +91,62 @@ chrome.runtime.sendMessage({
 
                     document.querySelector('div.topbar').innerHTML = `  ${headline}`;
 
+                    //sent
 
+                    fetch('https://fotuh2doc8.execute-api.us-west-1.amazonaws.com/getsents?text='+articletext)
+                      .then(
+                        function(response) {
+                          if (response.status !== 200) {
+                            console.log('Looks like there was a problem. Status Code: ' +
+                              response.status);
+                            return;
+                          }
+
+                          // Examine the text in the response
+                          response.json().then(function(sents) {
+                            console.log(sents);
+                            maxsents = sents.maxsents;
+                            maxlabels = sents.maxlabels;
+                            maxprobs = sents.maxprobs;
+                            probcenter = sents.probcenter;
+                            probleft = sents.probleft;
+                            probright = sents.probright;
+                            numcenter = sents.numcenter;
+                            numleft = sents.numleft;
+                            numright = sents.numright;
+
+                            var sentscore1 = document.getElementById("sentbiasnum1");
+                            sentscore1.innerHTML = Math.floor(maxprobs[0]*100).toString()+": ";
+                            sentscore1.style.color = getColorGradient(Math.floor(maxprobs[0]*100), transformscoretointerval(maxlabels[0]));
+
+                            var sentscore2 = document.getElementById("sentbiasnum2");
+                            sentscore2.innerHTML = Math.floor(maxprobs[1]*100).toString()+": ";
+                            sentscore2.style.color = getColorGradient(Math.floor(maxprobs[1]*100), transformscoretointerval(maxlabels[1]));
+
+                            var sentscore3 = document.getElementById("sentbiasnum3");
+                            sentscore3.innerHTML = Math.floor(maxprobs[2]*100).toString()+": ";
+                            sentscore3.style.color = getColorGradient(Math.floor(maxprobs[2]*100), transformscoretointerval(maxlabels[2]));
+
+
+
+                            var senttext1 = document.getElementById("sentbiastext1");
+                            senttext1.innerHTML = maxsents[0];
+
+                            var senttext2 = document.getElementById("sentbiastext2");
+                            senttext2.innerHTML = maxsents[1];
+
+                            var senttext3 = document.getElementById("sentbiastext3");
+                            senttext3.innerHTML = maxsents[2];
+
+                          });
+                        }
+                      )
+                      .catch(function(err) {
+                        console.log('Fetch Error :-S', err);
+                      });
+
+                      
+                    //class
                     fetch('https://u2eedde0w9.execute-api.us-west-2.amazonaws.com/getstuff?text='+articletext)
                       .then(
                         function(response) {
@@ -123,8 +182,8 @@ chrome.runtime.sendMessage({
                             drawcircle(showscore, newinterval);
                             var currScoretext = document.getElementById("score");
                             currScoretext.innerHTML = showscore.toString()+ ` (${predclass})`;
-                            var currbodytext = document.getElementById("body1");
-                            currbodytext.innerHTML = articletext;
+                            // var currbodytext = document.getElementById("body1");
+                            // currbodytext.innerHTML = articletext;
 
                             Array.from(document.getElementsByClassName("biascolor")).forEach(
                                 function(element, index, array) {
@@ -132,10 +191,6 @@ chrome.runtime.sendMessage({
                                     element.style.color = getColorGradient(showscore, newinterval);
                                 }
                             );
-                    // Array.from(document.getElementsByClassName("biascolor")).forEach(
-                    //     function(element, index, array) {
-                    //         // do stuff
-                    //         element.style.color = colorScore(label, probs);
 
                           });
                         }
@@ -144,27 +199,8 @@ chrome.runtime.sendMessage({
                         console.log('Fetch Error :-S', err);
                       });
 
-                    // label = data.class;
-                    // // probs = Math.max(data.probability);
-                    // probs = data.probabilities;
-                    // classprob = probs.reduce(function(a, b) {
-                    //     return Math.max(a, b);
-                    //     }, 0);
 
-                    // newinterval = getInterval(label, probs);
-                    // // classprob = getScore();
-                    // showscore = calculateScore(classprob, probs, newinterval);
 
-                    // drawcircle(classprob, newinterval);
-
-                    // var currScoretext = document.getElementById("score");
-                    // currScoretext.innerHTML = showscore.toString();
-                    // Array.from(document.getElementsByClassName("biascolor")).forEach(
-                    //     function(element, index, array) {
-                    //         // do stuff
-                    //         element.style.color = colorScore(label, probs);
-                    //     }
-                    // );
               });
             }
           )
@@ -251,6 +287,16 @@ function drawcircle(score, interval) {
 
   }
 
+function transformscoretointerval(label){
+    if(label === 1){
+        return "leftcenter";
+    }
+    if(label === 2){
+        return "rightcenter";
+    }
+    return "center";
+
+}
 
 
 function getScore(){
@@ -347,6 +393,9 @@ function colorScore(score, interval) {
             start = grey;
             // start = new Color(190, 94, 78);
             // end = new Color(232, 128, 128);
+        }
+        if (interval === "center"){
+            return grey;
         }
 
         // $(".value", span).text(val);
