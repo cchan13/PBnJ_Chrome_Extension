@@ -73,8 +73,12 @@ chrome.runtime.sendMessage({
               }
 
 
-            var senttop = document.getElementById("sentheader");
-            senttop.innerHTML = "Sentence-Level Analysis: Most Biased";
+            var senttop1 = document.getElementById("sentheader1");
+            senttop1.innerHTML = "Sentence-Level Analysis is loading...";
+            var senttop2 = document.getElementById("sentheader2");
+            senttop2.innerHTML = "Most Biased Sentences is loading...";
+            var currScoretext = document.getElementById("score");
+            currScoretext.innerHTML = "loading...";
               // Examine the text in the response
               response.json().then(function(data) {
                 console.log(data);
@@ -86,7 +90,7 @@ chrome.runtime.sendMessage({
 
                           return array.slice(0, max).join(' ') + ellipsis;
                         };
-                    articletext = shortentext(originaltext, 500);
+                    articletext = shortentext(originaltext, 600);
                     time = data.time;
 
                     document.querySelector('div.topbar').innerHTML = `  ${headline}`;
@@ -114,6 +118,40 @@ chrome.runtime.sendMessage({
                             numcenter = sents.numcenter;
                             numleft = sents.numleft;
                             numright = sents.numright;
+
+
+                            var senttop1 = document.getElementById("sentheader1");
+                            senttop1.innerHTML = "Sentence-Level Analysis:";
+                            var senttop2 = document.getElementById("sentheader2");
+                            senttop2.innerHTML = "Most Biased Sentences:";
+
+                            var sentpropbias1 = document.getElementById("sentbiasprop1");
+                            sentpropbias1.innerHTML = (Math.floor(probcenter*100)).toString()+"%";
+                            sentpropbias1.style.color = getColorGradient(100, "center");
+                            var sentpropbias2 = document.getElementById("sentbiasprop2");
+                            sentpropbias2.innerHTML = (Math.floor(probleft*100)).toString()+"%";
+                            sentpropbias2.style.color = getColorGradient(100, "leftcenter");
+                            var sentpropbias3 = document.getElementById("sentbiasprop3");
+                            sentpropbias3.innerHTML = (Math.floor(probright*100)).toString()+"%";
+                            sentpropbias3.style.color = getColorGradient(100, "rightcenter");
+
+                            var sentpropbias1 = document.getElementById("sentproplabel1");
+                            sentpropbias1.innerHTML = "center.";
+                            sentpropbias1.style.color = getColorGradient(100, "center");
+                            var sentpropbias2 = document.getElementById("sentproplabel2");
+                            sentpropbias2.innerHTML = "left.";
+                            sentpropbias2.style.color = getColorGradient(100, "leftcenter");
+                            var sentpropbias3 = document.getElementById("sentproplabel3");
+                            sentpropbias3.innerHTML = "right.";
+                            sentpropbias3.style.color = getColorGradient(100, "rightcenter");
+
+                            var sentpropbiasis1 = document.getElementById("sentbiasis1");
+                            sentpropbiasis1.innerHTML = " of sentences are ";
+                            var sentpropbiasis2 = document.getElementById("sentbiasis2");
+                            sentpropbiasis2.innerHTML = " of sentences are ";
+                            var sentpropbiasis3 = document.getElementById("sentbiasis3");
+                            sentpropbiasis3.innerHTML = " of sentences are ";
+
 
                             var sentscore1 = document.getElementById("sentbiasnum1");
                             sentscore1.innerHTML = Math.floor(maxprobs[0]*100).toString()+": ";
@@ -430,6 +468,12 @@ function getColorGradient(score, interval) {
     }
     if (interval === "rightcenter"){
         end_color = "#FF091A"; //red
+        start_color = "#808080"; //grey
+        // start = new Color(190, 94, 78);
+        // end = new Color(232, 128, 128);
+    }
+    if (interval === "center"){
+        end_color = "#808080"; //red
         start_color = "#808080"; //grey
         // start = new Color(190, 94, 78);
         // end = new Color(232, 128, 128);

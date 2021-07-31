@@ -140,7 +140,7 @@
     <div class = "wrapper1">
     <div class = "topbar" tabindex="-1">Political Bias in Journalism</div>
     <!-- <div class="biasis"> Bias score is <span id = "bias_score">X</span> </div> -->
-    <div class="biasis"> Bias score is <span><span class="biascolor" id="score">loading...</span></span> </div>
+    <div class="biasis" id="biasscoreis_"> Bias score is <span><span class="biascolor" id="score">not available.</span></span> </div>
 
     <div class="diagram">
         <!-- <img src = "./images/diagram.jpg" alt = "diagram" width = "700"> -->
@@ -161,8 +161,24 @@
     <div class = "content"> 
         <div class = "summary" id = "body1">
             <div class = "sentcontainer"> </div>
-            <div id = "sentheader" style = "text-align: center; font-size: 13pt"> No article found. </div>
+            <div id = "sentheader1" style = "text-align: center; font-size: 13pt"> Sentence Analysis is not available. </div>
             <br>
+            <div class = "sentence" id = "sentprop"> 
+                <span class="" id="sentbiasprop1"></span> 
+                <span class = "sentbiasis" id = "sentbiasis1"> </span>
+                <span id = "sentproplabel1"></span>
+                <br>
+                <span class="" id="sentbiasprop2"></span> 
+                <span class = "sentbiasis" id = "sentbiasis2"> </span>
+                <span id = "sentproplabel2"></span>
+                <br>
+                <span class="" id="sentbiasprop3"></span> 
+                <span class = "sentbiasis" id = "sentbiasis3"> </span>
+                <span id = "sentproplabel3"></span>
+            </div>
+            <br>
+            <div id = "sentheader2" style = "text-align: center; font-size: 13pt">  </div>
+            <br>            
             <div class = "sentence" id = "sent1"> 
                 <span class="sentbiasnum" id="sentbiasnum1"></span> 
                 <span class="sentbiastext" id="sentbiastext1"></span>
@@ -177,6 +193,8 @@
                 <span class="sentbiasnum" id="sentbiasnum3"></span> 
                 <span class="sentbiastext" id="sentbiastext3"></span>
             </div>
+            <br>
+            <br>
         </div>
         <div class = "summary"><span class="biascolor1" >Other source 0:</span>
         <br>
