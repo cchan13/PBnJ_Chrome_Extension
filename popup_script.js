@@ -1,504 +1,377 @@
 console.log("pop-up script");
 
+// https://stackoverflow.com/questions/20028950/chrome-extension-query-tabs-async
 
-const findTab = () =>
-new Promise(resolve => {
-    chrome.tabs.query(
-        {
-            active: true,
-            currentWindow: true
-        },
-        tabs => resolve(tabs[0])
-    );
+var url, headline, time, articleText, label, predClass, problist, labelprob, newinterval, showscore;
+var maxsents, maxlabels, maxprobs, probcenter, probleft, probright, numcenter, numleft, numright;
+var altTexts;
+
+
+chrome.tabs.query({currentWindow: true, active: true}, (tabs) => {
+    url = tabs[0].url;
+	console.log("URL: " + url);
+
+	document.querySelector('div.topbar').innerHTML = `Scanning article...`;
+
+    fetch('https://fotuh2doc8.execute-api.us-west-1.amazonaws.com/gettext?url='+url)
+        .then(
+            (articleResponse) => {
+                // if article extraction is unable to run successfully, show error message
+                if (articleResponse.status !== 200) {
+                    console.log('Looks like there was a problem. Status Code: ' + articleResponse.status);
+                    document.querySelector('div.topbar').innerHTML = "An error has occurred :(";
+                    return;
+                }
+                return articleResponse.json();
+            })
+        .then(
+            (article) => {
+                console.log(article);
+
+                // show article headline on popup
+                headline = article.title;
+                document.querySelector('div.topbar').innerHTML = `${headline}`;
+
+                time = article.time;
+                const originalText = article.text;
+                articleText = shortenText(originalText, 600);
+
+                // show loading messages for bias score and sentence analysis
+                document.getElementById("score").innerHTML = "loading...";
+                document.getElementById("analysis-header").innerHTML = "Sentence-Level Analysis is loading...";
+                document.getElementById("bias-header").innerHTML = "Most biased sentences are loading...";
+
+                // classify the full text of the article and obtain a bias score
+                return fetch('https://u2eedde0w9.execute-api.us-west-2.amazonaws.com/getstuff?text='+articleText);
+            })
+        .then(
+            (classifierResponse) => {
+                // if full text classifier is unable to run successfully, show error message
+                if (classifierResponse.status !== 200) {
+                    console.log('Looks like there was a problem. Status Code: ' + classifierResponse.status);
+                    document.getElementById("score").innerHTML = "not available.";
+                    document.getElementById("analysis-header").innerHTML = "Sentence-Level Analysis is not available.";
+                    document.getElementById("bias-header").innerHTML = "Most biased sentences are not available.";
+                    return;
+                }
+                return classifierResponse.json();
+            })
+        .then(
+            (classifier) => {
+                // show bias score on popup
+                showBiasScore(classifier);
+
+                // enable alternative article search button
+                document.getElementById('search').onclick = showAlternativeArticles;
+
+                document.getElementById('learn-more').onclick = showBiasDetail;
+
+                // classify the sentences in the article and obtain sentence-level scores
+                return fetch('https://fotuh2doc8.execute-api.us-west-1.amazonaws.com/getsents?text='+articleText);
+            })
+        .then(
+            (sentencesResponse) => {
+                // if sentence-level classifier is unable to run successfully, show error message
+                if (sentencesResponse.status !== 200) {
+                    console.log('Looks like there was a problem. Status Code: ' + sentencesResponse.status);
+                    document.getElementById("analysis-header").innerHTML = "Sentence-Level Analysis is not available.";
+                    document.getElementById("bias-header").innerHTML = "Most biased sentences are not available.";
+                    return;
+                }
+                return sentencesResponse.json();
+            })
+        .then((sentences) => showSentenceAnalysis(sentences))
+        .catch((err) => console.log('Fetch Error :-S', err));
+    return;
 });
 
-// async function getTab(){
-//     p = await new Promise(resolve => {
-//         chrome.tabs.query(
-//             {
-//                 active: true,
-//                 currentWindow: true
-//             },
-//             tabs => resolve(tabs[0])
-//         );
-// });
-//     return p;
-// }
 
 
-// async function getURL() {
-//     let result = await getTab();
-//     return result.url;
-// }
 
-// https://stackoverflow.com/questions/20028950/chrome-extension-query-tabs-async
-var url, tab;
-function getURL(){
-    chrome.tabs.query({currentWindow: true, active: true},function(tabs){
-       url = tabs[0].url;
-       tab = tabs[0];
-       //Now that we have the data we can proceed and do something with it
-    //    processTab();
-        // return url;
+function shortenText(str, max = 500) {
+    const array = str.trim().split(' ');
+    const ellipsis = array.length > max ? '...' : '';
+
+    return array.slice(0, max).join(' ') + ellipsis;
+};
+
+function showBiasScore(classifier) {
+    // Examine the text in the response
+    console.log(classifier);
+
+    label = classifier.class;
+    problist = classifier.probabilities;
+    labelprob = problist.reduce((a, b) => Math.max(a,b), 0);
+    predClass = ""
+
+    if (label===0){
+    predClass = "center";
+    }
+    else if (label===1){
+    predClass = "left";
+    }
+    else if (label===2){
+    predClass = "right";
+    }
+    //console.log(showscore);
+
+    newinterval = getInterval(label, problist);
+    showscore = calculateScore(labelprob, problist, newinterval);
+    drawcircle(showscore, newinterval);
+
+    document.getElementById("score").innerHTML = showscore.toString();
+    document.getElementById("bias-detail").innerHTML = "PBnJ has classified this article as politically ";
+    document.getElementById("class").innerHTML = `${predClass}`;
+
+    Array.from(document.getElementsByClassName("bias-color")).forEach(
+    function(element, index, array) {
+        element.style.color = getColorGradient(showscore, newinterval);
     });
-    return url;
+
+    return classifier;
 }
 
+function showSentenceAnalysis(sentences) {
+    console.log(sentences);
+
+    maxsents = sentences.maxsents;
+    maxlabels = sentences.maxlabels;
+    maxprobs = sentences.maxprobs;
+    probcenter = sentences.probcenter;
+    probleft = sentences.probleft;
+    probright = sentences.probright;
+    numcenter = sentences.numcenter;
+    numleft = sentences.numleft;
+    numright = sentences.numright;
+
+    document.getElementById("analysis-header").innerHTML = "Sentence-Level Analysis:";
+    document.getElementById("bias-header").innerHTML = "Most Biased Sentences:";
+
+    var sentpropbias1 = document.getElementById("sentbiasprop1");
+    sentpropbias1.innerHTML = (Math.floor(probcenter*100)).toString()+"%";
+    sentpropbias1.style.color = getColorGradient(100, "center");
+    var sentpropbias2 = document.getElementById("sentbiasprop2");
+    sentpropbias2.innerHTML = (Math.floor(probleft*100)).toString()+"%";
+    sentpropbias2.style.color = getColorGradient(100, "leftcenter");
+    var sentpropbias3 = document.getElementById("sentbiasprop3");
+    sentpropbias3.innerHTML = (Math.floor(probright*100)).toString()+"%";
+    sentpropbias3.style.color = getColorGradient(100, "rightcenter");
+
+    var sentpropbias1 = document.getElementById("sentproplabel1");
+    sentpropbias1.innerHTML = "center.";
+    sentpropbias1.style.color = getColorGradient(100, "center");
+    var sentpropbias2 = document.getElementById("sentproplabel2");
+    sentpropbias2.innerHTML = "left.";
+    sentpropbias2.style.color = getColorGradient(100, "leftcenter");
+    var sentpropbias3 = document.getElementById("sentproplabel3");
+    sentpropbias3.innerHTML = "right.";
+    sentpropbias3.style.color = getColorGradient(100, "rightcenter");
 
 
-console.log("URL: " + getURL())
-var headline, time, articletext, label, problist, labelprob, newinterval, showscore;
-var maxsents, maxlabels, maxprobs, probcenter, probleft, probright, numcenter, numleft, numright;
-chrome.runtime.sendMessage({
-    message: "get_name"
-}, response => {
-    if (response.message === 'success'){
-        // init();
-        document.querySelector('div.topbar').innerHTML = `  URL: ${getURL()}`;
-        var currScoretext = document.getElementById("score");
-        // newscore = getScore();
-        // newinterval = getInterval();
-        // currScoretext.innerHTML = newscore.toString();
-        // drawcircle(newscore, newinterval);
-        // fetch('https://1tn5xbbrz0.execute-api.us-west-2.amazonaws.com/getstuff?url='+getURL())
+    document.getElementById("sentbiasis1").innerHTML = " of sentences are ";
+    document.getElementById("sentbiasis2").innerHTML = " of sentences are ";
+    document.getElementById("sentbiasis3").innerHTML = " of sentences are ";
 
-        fetch('https://fotuh2doc8.execute-api.us-west-1.amazonaws.com/gettext?url='+getURL())
-          .then(
-            function(response) {
-              if (response.status !== 200) {
-                document.querySelector('div.topbar').innerHTML = `  No article found.`;
-                console.log('Looks like there was a problem. Status Code: ' +
-                  response.status);
+
+    var sentscore1 = document.getElementById("sentbiasnum1");
+    sentscore1.innerHTML = Math.floor(maxprobs[0]*100).toString()+": ";
+    sentscore1.style.color = getColorGradient(Math.floor(maxprobs[0]*100), transformscoretointerval(maxlabels[0]));
+
+    var sentscore2 = document.getElementById("sentbiasnum2");
+    sentscore2.innerHTML = Math.floor(maxprobs[1]*100).toString()+": ";
+    sentscore2.style.color = getColorGradient(Math.floor(maxprobs[1]*100), transformscoretointerval(maxlabels[1]));
+
+    var sentscore3 = document.getElementById("sentbiasnum3");
+    sentscore3.innerHTML = Math.floor(maxprobs[2]*100).toString()+": ";
+    sentscore3.style.color = getColorGradient(Math.floor(maxprobs[2]*100), transformscoretointerval(maxlabels[2]));
+
+
+    document.getElementById("sentbiastext1").innerHTML = maxsents[0];
+    document.getElementById("sentbiastext2").innerHTML = maxsents[1];
+    document.getElementById("sentbiastext3").innerHTML = maxsents[2];
+
+    return sentences;
+
+}
+
+function showAlternativeArticles() {
+
+	document.getElementById('article-header').innerHTML = `Alternative Articles are loading...`;
+	document.getElementById('source-1').innerHTML = `This may take a minute.`;
+
+	/*
+	// fetch articles
+	fetch('url_for_web/getarticles?url='+getURL()+'?text='+articleText+'?date='+time+'?class='+predClass)
+	.then(
+	    (searchResponse) => {
+			if (searchResponse.status !== 200) {
+			    console.log('Looks like there was a problem. Status Code: ' + searchResponse.status);
+				document.getElementById("article-header").innerHTML = `Alternative Articles not available.`;
+				document.getElementById("article-body").innerHTML = 'You may be seeing this error because...<br><ul><li>No relevant results have been found.</li><li>You have found an edge case we didn't account for.</li></ul>';
+				return;
+			}
+			return searchResponse.json()
+		})
+	.then(
+	    (search) => {
+
+	        console.log(search);
+	*/
+	        document.getElementById('article-header').innerHTML = `Alternative Articles:`;
+
+            document.getElementById('source-1').innerHTML = `source: `;
+            document.getElementById('title-1').innerHTML = `title `;
+            document.getElementById('date-1').innerHTML = `(date)`;
+
+            document.getElementById('source-2').innerHTML = `source: `;
+            document.getElementById('title-2').innerHTML = `title `;
+            document.getElementById('date-2').innerHTML = `(date)`;
+
+            document.getElementById('source-3').innerHTML = `source: `;
+            document.getElementById('title-3').innerHTML = `title `;
+            document.getElementById('date-3').innerHTML = `(date)`;
+
+
+            document.getElementById('summary-header').innerHTML = `Summary of Alternative Articles is loading...`;
+            document.getElementById('summary-text').innerHTML = `This may take a minute.`;
+
+    /*
+            // fetch summary
+            return fetch('url_for_web/getsummary?text='+altTexts);
+	    })
+    .then(
+        (summaryResponse) => {
+            if (summaryResponse.status !== 200) {
+                console.log('Looks like there was a problem. Status Code: ' + summaryResponse.status);
+                document.getElementById("summary-header").innerHTML = `Summary of Alternative Articles is not available.`;
+                document.getElementById("summary-text").innerHTML = 'You may be seeing this error because...<br><ul><li>No relevant results have been found.</li><li>You have found an edge case we didn't account for.</li></ul>';
                 return;
-              }
-
-
-            var senttop1 = document.getElementById("sentheader1");
-            senttop1.innerHTML = "Sentence-Level Analysis is loading...";
-            var senttop2 = document.getElementById("sentheader2");
-            senttop2.innerHTML = "Most Biased Sentences is loading...";
-            var currScoretext = document.getElementById("score");
-            currScoretext.innerHTML = "loading...";
-              // Examine the text in the response
-              response.json().then(function(data) {
-                console.log(data);
-                    headline = data.title;
-                    originaltext = data.text;
-                    shortentext = (str = originaltext, max = 500) => {
-                          const array = str.trim().split(' ');
-                          const ellipsis = array.length > max ? '...' : '';
-
-                          return array.slice(0, max).join(' ') + ellipsis;
-                        };
-                    articletext = shortentext(originaltext, 600);
-                    time = data.time;
-
-                    document.querySelector('div.topbar').innerHTML = `  ${headline}`;
-
-                    //sent
-
-                    fetch('https://fotuh2doc8.execute-api.us-west-1.amazonaws.com/getsents?text='+articletext)
-                      .then(
-                        function(response) {
-                          if (response.status !== 200) {
-                            console.log('Looks like there was a problem. Status Code: ' +
-                              response.status);
-                            return;
-                          }
-
-                          // Examine the text in the response
-                          response.json().then(function(sents) {
-                            console.log(sents);
-                            maxsents = sents.maxsents;
-                            maxlabels = sents.maxlabels;
-                            maxprobs = sents.maxprobs;
-                            probcenter = sents.probcenter;
-                            probleft = sents.probleft;
-                            probright = sents.probright;
-                            numcenter = sents.numcenter;
-                            numleft = sents.numleft;
-                            numright = sents.numright;
-
-
-                            var senttop1 = document.getElementById("sentheader1");
-                            senttop1.innerHTML = "Sentence-Level Analysis:";
-                            var senttop2 = document.getElementById("sentheader2");
-                            senttop2.innerHTML = "Most Biased Sentences:";
-
-                            var sentpropbias1 = document.getElementById("sentbiasprop1");
-                            sentpropbias1.innerHTML = (Math.floor(probcenter*100)).toString()+"%";
-                            sentpropbias1.style.color = getColorGradient(100, "center");
-                            var sentpropbias2 = document.getElementById("sentbiasprop2");
-                            sentpropbias2.innerHTML = (Math.floor(probleft*100)).toString()+"%";
-                            sentpropbias2.style.color = getColorGradient(100, "leftcenter");
-                            var sentpropbias3 = document.getElementById("sentbiasprop3");
-                            sentpropbias3.innerHTML = (Math.floor(probright*100)).toString()+"%";
-                            sentpropbias3.style.color = getColorGradient(100, "rightcenter");
-
-                            var sentpropbias1 = document.getElementById("sentproplabel1");
-                            sentpropbias1.innerHTML = "center.";
-                            sentpropbias1.style.color = getColorGradient(100, "center");
-                            var sentpropbias2 = document.getElementById("sentproplabel2");
-                            sentpropbias2.innerHTML = "left.";
-                            sentpropbias2.style.color = getColorGradient(100, "leftcenter");
-                            var sentpropbias3 = document.getElementById("sentproplabel3");
-                            sentpropbias3.innerHTML = "right.";
-                            sentpropbias3.style.color = getColorGradient(100, "rightcenter");
-
-                            var sentpropbiasis1 = document.getElementById("sentbiasis1");
-                            sentpropbiasis1.innerHTML = " of sentences are ";
-                            var sentpropbiasis2 = document.getElementById("sentbiasis2");
-                            sentpropbiasis2.innerHTML = " of sentences are ";
-                            var sentpropbiasis3 = document.getElementById("sentbiasis3");
-                            sentpropbiasis3.innerHTML = " of sentences are ";
-
-
-                            var sentscore1 = document.getElementById("sentbiasnum1");
-                            sentscore1.innerHTML = Math.floor(maxprobs[0]*100).toString()+": ";
-                            sentscore1.style.color = getColorGradient(Math.floor(maxprobs[0]*100), transformscoretointerval(maxlabels[0]));
-
-                            var sentscore2 = document.getElementById("sentbiasnum2");
-                            sentscore2.innerHTML = Math.floor(maxprobs[1]*100).toString()+": ";
-                            sentscore2.style.color = getColorGradient(Math.floor(maxprobs[1]*100), transformscoretointerval(maxlabels[1]));
-
-                            var sentscore3 = document.getElementById("sentbiasnum3");
-                            sentscore3.innerHTML = Math.floor(maxprobs[2]*100).toString()+": ";
-                            sentscore3.style.color = getColorGradient(Math.floor(maxprobs[2]*100), transformscoretointerval(maxlabels[2]));
-
-
-
-                            var senttext1 = document.getElementById("sentbiastext1");
-                            senttext1.innerHTML = maxsents[0];
-
-                            var senttext2 = document.getElementById("sentbiastext2");
-                            senttext2.innerHTML = maxsents[1];
-
-                            var senttext3 = document.getElementById("sentbiastext3");
-                            senttext3.innerHTML = maxsents[2];
-
-                          });
-                        }
-                      )
-                      .catch(function(err) {
-                        console.log('Fetch Error :-S', err);
-                      });
-
-                      
-                    //class
-                    fetch('https://u2eedde0w9.execute-api.us-west-2.amazonaws.com/getstuff?text='+articletext)
-                      .then(
-                        function(response) {
-                          if (response.status !== 200) {
-                            console.log('Looks like there was a problem. Status Code: ' +
-                              response.status);
-                            return;
-                          }
-
-                          // Examine the text in the response
-                          response.json().then(function(classifier) {
-                            console.log(classifier);
-                            label = classifier.class;
-                            predclass = "";
-                            problist = classifier.probabilities;
-                            labelprob = problist.reduce(function(a, b){
-                                return Math.max(a,b);
-                            }, 0);
-
-                            if (label===0){
-                                predclass = "center";
-                            }
-                            if (label===1){
-                                predclass = "left";
-                            }
-                            if (label===2){
-                                predclass = "right";
-                            }
-                            console.log(showscore);
-
-                            newinterval = getInterval(label, problist);
-                            showscore = calculateScore(labelprob, problist, newinterval);
-                            drawcircle(showscore, newinterval);
-                            var currScoretext = document.getElementById("score");
-                            currScoretext.innerHTML = showscore.toString()+ ` (${predclass})`;
-                            // var currbodytext = document.getElementById("body1");
-                            // currbodytext.innerHTML = articletext;
-
-                            Array.from(document.getElementsByClassName("biascolor")).forEach(
-                                function(element, index, array) {
-                                    // do stuff
-                                    element.style.color = getColorGradient(showscore, newinterval);
-                                }
-                            );
-
-                          });
-                        }
-                      )
-                      .catch(function(err) {
-                        console.log('Fetch Error :-S', err);
-                      });
-
-
-
-              });
             }
-          )
-          .catch(function(err) {
-            console.log('Fetch Error :-S', err);
-          });
+            return summaryResponse.json();
+        })
+    .then(
+        (summary) => {
+    */
+            document.getElementById('summary-header').innerHTML = `Summary of Alternative Articles:`;
+            document.getElementById('summary-text').innerHTML = `summary`;
+    /*
+            return summary;
+        }
+    ).catch((err) => console.log('Fetch Error :-S', err););
+	*/
+}
 
+function showBiasDetail() {
+  //var dots = document.getElementById("dots");
+  const moreText = document.getElementById("bias-detail-more");
+  const btnText = document.getElementById("learn-more");
 
-    //     fetch('https://u2eedde0w9.execute-api.us-west-2.amazonaws.com/getstuff?url='+getURL()).then(r => r.text()).then(result => {
-    // // Result now contains the response text, do what you want...
-    //     console.log(result);
-    //         headline = result.title;
-    //         label = result.class;
-    //         probs = result.probability;
-    //         document.querySelector('div.topbar').innerHTML = `  Headline: ${headline}, Label: ${label}, Probs = ${probs}`;
-
-    //     })
-
-        // currColortext = document.getElementsByClassName('biascolor');
-        // for (const text in currColortext) {
-        //     text.style.color = changeColor(newscore);
-        // }
-
-        // currColortext.innerHTML = 'new text here';
-
-        // $('.biascolor').css('color', changeColor(newscore));
-    }
-});
+  if (moreText.style.display === "none") {
+    btnText.innerHTML = "Less";
+    moreText.style.display = "inline";
+  } else {
+    btnText.innerHTML = "Learn more";
+    moreText.style.display = "none";
+  }
+}
 
 
 
 
 function drawcircle(score, interval) {
-    // c=document.getElementById("diagramcanvas");
-    // ctx=c.getContext("2d");
-    // img=document.getElementById("scream");  
-    // ctx.drawImage(img,10,10);  
-    canvas = document.getElementById('diagramcanvas');
+    canvas = document.getElementById('diagram-canvas');
     context = canvas.getContext('2d');
-  
-    context.beginPath();
-    // // leftmost
-    // context.arc(45, 34, 8, 0, 2* Math.PI, true)
-    // // rightmost
-    // context.arc(655, 34, 8, 0, 2* Math.PI, true)
-    // // centermost
-    // context.arc(350, 34, 8, 0, 2* Math.PI, true)
-    context.arc(getX(score, interval), 34, 8, 0, 2* Math.PI, true)
 
-    // context.circle(188, 50, 200, 100);
+    context.beginPath();
+    context.arc(getX(score, interval), 34, 8, 0, 2* Math.PI, true)
     context.fillStyle = getColorGradient(score, newinterval);
     context.fill();
-    // context.lineWidth = 7;
-    // context.strokeStyle = 'black';
-    // context.stroke();
-  }
+}
 
-  function getX(score, interval){
-      if(interval === "leftcenter"){
+function getX(score, interval){
+    if(interval === "leftcenter"){
         x = (1- score/100)*(350-45)+45;
         return x;
-      };
-      if(interval === "rightcenter"){
+    };
+    if(interval === "rightcenter"){
         x = (score/100)*(655-350)+350;
         return x;
-      };
-
-      // if(interval === "leftcenter"){
-      //   x = (score/100)*(350-45)+45;
-      //   return x;
-      // };
-      // if(interval === "rightcenter"){
-      //   x = (score/100)*(655-350)+350;
-      //   return x;
-      // };
-      // if(interval === "centerleft"){
-      //   x = (score/100)*(Math.floor(655/4)-45)+45;
-      //   return x;
-      // };
-      // if(interval === "centerright"){
-      //   x = (score/100)*(3*Math.floor(655/4)-45)+45;
-      //   return x;
-      // };
-
-  }
+    };
+}
 
 function transformscoretointerval(label){
-    if(label === 1){
-        return "leftcenter";
-    }
-    if(label === 2){
-        return "rightcenter";
-    }
-    return "center";
-
+	if(label === 1){
+		return "leftcenter";
+	}
+	if(label === 2){
+		return "rightcenter";
+	}
+	return "center";
 }
 
-
-function getScore(){
-    return 4;
-}
 
 function calculateScore(n, problist, interval){
-    if (interval === "leftcenter"){
-        score = problist[1]/(problist[1]+problist[0]);
-        return Math.floor(score*100);
-    }
-    if (interval === "rightcenter"){
-        score = problist[2]/(problist[2]+problist[0]);
-        return Math.floor(score*100);
-    }
-    // if (interval === "centerleft"){
-    //     score = problist[0]/(problist[1]+prob[0]);
-    //     return Math.floor(score*100);        
-    // }
-    // if (interval === "centerleft"){
-    //     score = problist[0]/(problist[2]+prob[0]);
-    //     return Math.floor(score*100);        
-    // }
-    return Math.floor((1-n)*100)
+	if (interval === "leftcenter"){
+		score = problist[1]/(problist[1]+problist[0]);
+		return Math.floor(score*100);
+	}
+	if (interval === "rightcenter"){
+		score = problist[2]/(problist[2]+problist[0]);
+		return Math.floor(score*100);
+	}
+	return Math.floor((1-n)*100)
 }
 
 function getInterval(l, p){
-    console.log(l)
-    console.log(p)
-    if(l === 1){
-        return "leftcenter";
-    }
-    if(l === 2){
-        return "rightcenter";
-    }
-    if(p[0]>p[2]){
-        // return "centerleft";
-        return "leftcenter";
-    }
-    return "rightcenter";
+	console.log(l)
+	console.log(p)
+	if(l === 1){
+		return "leftcenter";
+	}
+	if(l === 2){
+		return "rightcenter";
+	}
+	if(p[0]>p[2]){
+		return "leftcenter";
+	}
+	return "rightcenter";
 }
-
-// color grading: https://stackoverflow.com/questions/11849308/generate-colors-between-red-and-green-for-an-input-range
-
-function Interpolate(start, end, steps, count) {
-    var s = start,
-        e = end,
-        final = s + (((e - s) / steps) * count);
-    return Math.floor(final);
-}
-
-function Color(_r, _g, _b) {
-    var r, g, b;
-    var setColors = function(_r, _g, _b) {
-        r = _r;
-        g = _g;
-        b = _b;
-    };
-
-    setColors(_r, _g, _b);
-    this.getColors = function() {
-        var colors = {
-            r: r,
-            g: g,
-            b: b
-        };
-        return colors;
-    };
-}
-
-
-function colorScore(score, interval) {
-
-
-        var self = this,
-            // span = $(self).parent("span"),
-            val = score,
-            red = new Color(232, 9, 26),
-            grey = new Color(200, 200, 200),
-            blue = new Color(30,144,255),
-            bluegrey = new Color(109, 135, 190),
-            redgrey = new Color(190, 94, 78),
-            start = blue,
-            end = grey;
-
-        if (interval === "leftcenter"){
-            end = grey;
-            start = blue;
-            // end = new Color(30,144,255);
-            // start = new Color(109, 135, 190);
-        }
-        if (interval === "rightcenter"){
-            end = red;
-            start = grey;
-            // start = new Color(190, 94, 78);
-            // end = new Color(232, 128, 128);
-        }
-        if (interval === "center"){
-            return grey;
-        }
-
-        // $(".value", span).text(val);
-
-        // if (val > 50) {
-        //     start = grey,
-        //         end = red;
-        //     val = val % 51;
-        // }
-        var startColors = start.getColors(),
-            endColors = end.getColors();
-        var r = Interpolate(startColors.r, endColors.r, 50, val);
-        var g = Interpolate(startColors.g, endColors.g, 50, val);
-        var b = Interpolate(startColors.b, endColors.b, 50, val);
-
-        color = "rgb(" + r + "," + g + "," + b + ")";
-        console.log(color);
-        return color;
-        // span.css({
-        //     color: "rgb(" + r + "," + g + "," + b + ")"
-        // });
-    }
 
 // https://stackoverflow.com/questions/3080421/javascript-color-gradient
-
 function getColorGradient(score, interval) {
-    if (interval === "leftcenter"){
-        end_color = "#1E90FF"; //blue
-        start_color = "#808080"; //grey
-        // end = new Color(30,144,255);
-        // start = new Color(109, 135, 190);
-    }
-    if (interval === "rightcenter"){
-        end_color = "#FF091A"; //red
-        start_color = "#808080"; //grey
-        // start = new Color(190, 94, 78);
-        // end = new Color(232, 128, 128);
-    }
-    if (interval === "center"){
-        end_color = "#808080"; //red
-        start_color = "#808080"; //grey
-        // start = new Color(190, 94, 78);
-        // end = new Color(232, 128, 128);
-    }
+	if (interval === "leftcenter"){
+		end_color = "#1E90FF"; //blue
+		start_color = "#808080"; //grey
+	}
+	if (interval === "rightcenter"){
+		end_color = "#FF091A"; //red
+		start_color = "#808080"; //grey
+	}
+	if (interval === "center"){
+		end_color = "#808080"; //red
+		start_color = "#808080"; //grey
+	}
    // strip the leading # if it's there
    start_color = start_color.replace(/^\s*#|\s*$/g, '');
    end_color = end_color.replace(/^\s*#|\s*$/g, '');
 
    // convert 3 char codes --> 6, e.g. `E0F` --> `EE00FF`
    if(start_color.length == 3){
-     start_color = start_color.replace(/(.)/g, '$1$1');
+	 start_color = start_color.replace(/(.)/g, '$1$1');
    }
 
    if(end_color.length == 3){
-     end_color = end_color.replace(/(.)/g, '$1$1');
+	 end_color = end_color.replace(/(.)/g, '$1$1');
    }
 
    // get colors
    var start_red = parseInt(start_color.substr(0, 2), 16),
-       start_green = parseInt(start_color.substr(2, 2), 16),
-       start_blue = parseInt(start_color.substr(4, 2), 16);
+	   start_green = parseInt(start_color.substr(2, 2), 16),
+	   start_blue = parseInt(start_color.substr(4, 2), 16);
 
    var end_red = parseInt(end_color.substr(0, 2), 16),
-       end_green = parseInt(end_color.substr(2, 2), 16),
-       end_blue = parseInt(end_color.substr(4, 2), 16);
+	   end_green = parseInt(end_color.substr(2, 2), 16),
+	   end_blue = parseInt(end_color.substr(4, 2), 16);
 
    // calculate new color
    var diff_red = end_red - start_red;
@@ -521,65 +394,3 @@ function getColorGradient(score, interval) {
 
 
 
-function changeColor(score) {
-
-        var self = this,
-            // span = $(self).parent("span"),
-            val = score,
-            red = new Color(232, 9, 26),
-            grey = new Color(128, 128, 128),
-            blue = new Color(30,144,255),
-            start = blue,
-            end = grey;
-
-        // $(".value", span).text(val);
-
-        if (val > 50) {
-            start = grey,
-                end = red;
-            val = val % 51;
-        }
-        var startColors = start.getColors(),
-            endColors = end.getColors();
-        var r = Interpolate(startColors.r, endColors.r, 50, val);
-        var g = Interpolate(startColors.g, endColors.g, 50, val);
-        var b = Interpolate(startColors.b, endColors.b, 50, val);
-
-        color = "rgb(" + r + "," + g + "," + b + ")";
-        return color;
-        // span.css({
-        //     color: "rgb(" + r + "," + g + "," + b + ")"
-        // });
-    }
-
-
-// $(document).on({
-//     change: function(e) {
-
-//         var self = this,
-//             span = $(self).parent("span"),
-//             val = parseInt(self.value),
-//             red = new Color(232, 9, 26),
-//             white = new Color(255, 255, 255),
-//             green = new Color(6, 170, 60),
-//             start = blue,
-//             end = white;
-
-//         $(".value", span).text(val);
-
-//         if (val > 50) {
-//             start = white,
-//                 end = red;
-//             val = val % 51;
-//         }
-//         var startColors = start.getColors(),
-//             endColors = end.getColors();
-//         var r = Interpolate(startColors.r, endColors.r, 50, val);
-//         var g = Interpolate(startColors.g, endColors.g, 50, val);
-//         var b = Interpolate(startColors.b, endColors.b, 50, val);
-
-//         span.css({
-//             backgroundColor: "rgb(" + r + "," + g + "," + b + ")"
-//         });
-//     }
-// }, "input[type='range']");​
