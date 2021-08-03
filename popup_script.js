@@ -264,7 +264,7 @@ function showAlternativeArticles() {
                         console.log(index);
                     })
 
-                await new Promise(r => setTimeout(r, 3000));
+                await new Promise(r => setTimeout(r, 1500));
             };
 
             return;
@@ -424,10 +424,10 @@ function transformscoretointerval(label){
  }
 
  function transformClassToInterval(bias){
- 	if(label === "left"){
+ 	if(bias === "left"){
  		return "leftcenter";
  	}
- 	if(label === "right"){
+ 	if(bias === "right"){
  		return "rightcenter";
  	}
  	return "center";
