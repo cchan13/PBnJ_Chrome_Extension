@@ -385,7 +385,7 @@ function showSummary(text, id) {
         })
     .then(
         (summaryResponse) => {
-            document.getElementById(id).innerHTML = `${summaryResponse.summary}`;
+            document.getElementById(id).innerHTML = `<mark>Highlights:</mark> ${summaryResponse.summary}`;
         })
 }
 
