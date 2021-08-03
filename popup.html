@@ -11,7 +11,7 @@
         html {
             height: 100%;
         }
-        body{
+        body {
             width: 750px;
             height: 550px;
             border: 0;
@@ -105,7 +105,7 @@
             font-weight: bold;
             font-size: 40px;
             font-style: normal;
-            top: 30%;
+            top: 33%;
             margin: 2% auto;
             position: relative;
             text-align: center;
@@ -120,7 +120,7 @@
             padding-left: 5%;
             padding-right: 5%;
             padding-bottom: 3%;
-            top: 48%;
+            top: 60%;
             position: absolute;
             justify-content: center;
             display: inline-flex;
@@ -134,16 +134,50 @@
         div.detail-header{
             text-align: left; 
             font-size: 13pt;
+            font-weight: 500;
         }
         div.sentence{
             text-align: justify;
         }
         span.bias-color{
             color: grey;
+            font-weight: bold;
         }
-        #bias-detail-more{
-            display: none;
+        span.source {
+            font-weight: 425;
         }
+        a {
+            color: #A14BAE;
+
+        }
+        button.more {
+            background-color: #ddd;
+            border: none;
+            color: black;
+            padding: 4px 8px;
+            text-align: center;
+            font-size: 13px;
+            font-family: inherit;
+            margin: 1px 1px;
+            transition: 0.3s;
+        }
+
+        button.search {
+            background-color: #ddd;
+            border: none;
+            color: black;
+            padding: 4px 8px;
+            text-align: center;
+            font-size: 13px;
+            font-family: inherit;
+            margin: 1px 1px;
+            transition: 0.3s;
+        }
+        button:hover {
+            background-color: #A14BAE;
+            color: white;
+        }
+
 
 
     </style>
@@ -154,13 +188,13 @@
         <div class = "content">
             <div class="bias" id="bias-score-is">Bias score is <span class="bias-color" id="score">not available.</span></div>
             <div class="bias-detail">
-                <span id="bias-detail">PBnJ has </span><span class="bias-color" id="class">not classified this page.</span>
-                <span id="bias-detail-more">This is our explanation of how we got this score. This is our explanation of how we got this score. This is our explanation of how we got this score. This is our explanation of how we got this score. </span>
-                <button type="button" id="learn-more">Learn more</button>
+                <span id="bias-detail">PBnJ has </span><span class="bias-color" id="class">not classified this page</span>.
+                <span id="bias-detail-more" style="display: none;">Our model learns to score political bias based on publication-level bias classifications from <a href = "https://www.allsides.com/media-bias/media-bias-ratings">AllSides</a>. Higher scores represent greater confidence that the article is left or right-leaning compared to center. Visit our <a href = "https://thepbnjproject.wixsite.com/home/the-project">website</a> for more information on how our model works.</span>
+                <button type="button" class="more" id="learn-more">More</button>
 
             </div>
             <div class="diagram">
-                <canvas id = "diagram-canvas" width = "700" height = "75" style="background-image:url('./images/diagram.jpg');"></canvas>
+                <canvas id = "diagram-canvas" width = "700" height = "75" style="background-image:url('images/scale_updated.png');"></canvas>
             </div>
             <div class = "content-detail"> 
                 <div class = "detail" id = "sentences">
@@ -180,7 +214,7 @@
                         <span id = "sentproplabel3"></span>
                     </div>
                     <br>
-                    <div class = "detail-header" id = "bias-header">Most biased sentences are not available.</div>
+                    <div class = "detail-header" id = "bias-header"></div>
                     <br>            
                     <div class = "sentence" id = "sent1"> 
                         <span class="sentbiasnum" id="sentbiasnum1"></span> 
@@ -200,21 +234,19 @@
                 </div>
                 <div class = "detail" id="articles">
                     <div class = "detail-header" id = "article-header">
-                        <button type="button" id="search">Search for alternative perspectives.</button>
+                        <button type="button" class="search" id="search">Search for alternative perspectives.</button>
                     </div>
                     <br>
                     <div id = "article-body">
-                        <div id = "article-1"><span id = "source-1"></span><span id = "title-1"></span><span id = "date-1"></span></div>
-                        <br>
-                        <div id = "article-2"><span id = "source-2"></span><span id = "title-2"></span><span id = "date-2"></span></div>
-                        <br>
-                        <div id = "article-3"><span id = "source-3"></span><span id = "title-3"></span><span id = "date-3"></span></div>
-                    </div>  
-                    <br>
-                    <div id = "summarization">
-                        <div class = "detail-header" id = "summary-header"></div>
+                        <div id = "article-1"><span class="source" id = "source-1"></span><span class="title" id = "title-1"></span></div>
                         <br>
                         <div id = "summary-body"><span id="summary-text"></span></div>
+                        <br>
+                        <div id = "article-2"><span class="source" id = "source-2"></span><span class="title" id = "title-2"></span></div>
+                        <br>
+                        <div id = "summary-body"><span id="summary-text"></span></div>
+                        <br>
+                        <div id = "article-3"><span class="source" id = "source-3"></span><span class="title" id = "title-3"></span></div>
                     </div>
                 </div>
             </div>

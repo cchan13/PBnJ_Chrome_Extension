@@ -4,7 +4,7 @@ console.log("pop-up script");
 
 var url, headline, time, articleText, label, predClass, problist, labelprob, newinterval, showscore;
 var maxsents, maxlabels, maxprobs, probcenter, probleft, probright, numcenter, numleft, numright;
-var altTexts;
+var searchSummary, altTexts, altTitles, altURLs, altSources, altBiases;
 
 
 chrome.tabs.query({currentWindow: true, active: true}, (tabs) => {
@@ -199,70 +199,160 @@ function showAlternativeArticles() {
 	document.getElementById('article-header').innerHTML = `Alternative Articles are loading...`;
 	document.getElementById('source-1').innerHTML = `This may take a minute.`;
 
-	/*
-	// fetch articles
-	fetch('url_for_web/getarticles?url='+getURL()+'?text='+articleText+'?date='+time+'?class='+predClass)
-	.then(
-	    (searchResponse) => {
-			if (searchResponse.status !== 200) {
-			    console.log('Looks like there was a problem. Status Code: ' + searchResponse.status);
-				document.getElementById("article-header").innerHTML = `Alternative Articles not available.`;
-				document.getElementById("article-body").innerHTML = 'You may be seeing this error because...<br><ul><li>No relevant results have been found.</li><li>You have found an edge case we didn't account for.</li></ul>';
-				return;
-			}
-			return searchResponse.json()
-		})
-	.then(
-	    (search) => {
+	// fetch summary
+	var searchSources, searchBiases;
+	var alternativeURLs = [];
+    var alternativeSources = [];
+    var alternativeBiases = [];
 
-	        console.log(search);
-	*/
-	        document.getElementById('article-header').innerHTML = `Alternative Articles:`;
-
-            document.getElementById('source-1').innerHTML = `source: `;
-            document.getElementById('title-1').innerHTML = `title `;
-            document.getElementById('date-1').innerHTML = `(date)`;
-
-            document.getElementById('source-2').innerHTML = `source: `;
-            document.getElementById('title-2').innerHTML = `title `;
-            document.getElementById('date-2').innerHTML = `(date)`;
-
-            document.getElementById('source-3').innerHTML = `source: `;
-            document.getElementById('title-3').innerHTML = `title `;
-            document.getElementById('date-3').innerHTML = `(date)`;
-
-
-            document.getElementById('summary-header').innerHTML = `Summary of Alternative Articles is loading...`;
-            document.getElementById('summary-text').innerHTML = `This may take a minute.`;
-
-    /*
-            // fetch summary
-            return fetch('url_for_web/getsummary?text='+altTexts);
-	    })
+    fetch('https://0z5mfmbfbd.execute-api.us-east-1.amazonaws.com/getsummary?text='+articleText)
     .then(
         (summaryResponse) => {
             if (summaryResponse.status !== 200) {
                 console.log('Looks like there was a problem. Status Code: ' + summaryResponse.status);
-                document.getElementById("summary-header").innerHTML = `Summary of Alternative Articles is not available.`;
-                document.getElementById("summary-text").innerHTML = 'You may be seeing this error because...<br><ul><li>No relevant results have been found.</li><li>You have found an edge case we didn't account for.</li></ul>';
+                document.getElementById("article-header").innerHTML = `Alternative Articles not available.`;
+                document.getElementById("article-body").innerHTML = "You may be seeing this error because...<br><ul><li>No relevant results have been found.</li><li>Too many requests have been made.</li><li>You have found an edge case we didn't account for.</li></ul>";
                 return;
             }
-            return summaryResponse.json();
+            return summaryResponse.json()
         })
     .then(
-        (summary) => {
-    */
-            document.getElementById('summary-header').innerHTML = `Summary of Alternative Articles:`;
-            document.getElementById('summary-text').innerHTML = `summary`;
-    /*
-            return summary;
-        }
-    ).catch((err) => console.log('Fetch Error :-S', err););
-	*/
+        (summaryResponse) => {
+            searchSummary = summaryResponse.summary;
+            console.log(searchSummary);
+            return fetch('https://0z5mfmbfbd.execute-api.us-east-1.amazonaws.com/getsources?label='+label)
+        })
+
+//    searchSummary = "Kinzinger: 'Significant amount' of subpoenas likely in Jan. 6 probe";
+//    fetch('https://0z5mfmbfbd.execute-api.us-east-1.amazonaws.com/getsources?label='+label)
+    .then(
+        (sourcesResponse) => {
+            if (sourcesResponse.status !== 200) {
+                console.log('Looks like there was a problem. Status Code: ' + sourcesResponse.status);
+                document.getElementById("article-header").innerHTML = `Alternative Articles not available.`;
+                document.getElementById("article-body").innerHTML = "You may be seeing this error because...<br><ul><li>No relevant results have been found.</li><li>Too many requests have been made.</li><li>You have found an edge case we didn't account for.</li></ul>";                return;
+            }
+            return sourcesResponse.json()
+        })
+    .then(
+        async function search(sourcesResponse) {
+            searchSources = sourcesResponse.sources;
+            searchBiases = sourcesResponse.biases;
+            console.log(searchSources);
+            console.log(searchBiases);
+
+            console.log(searchSources.entries())
+
+            for (let [index, src] of searchSources.entries()) {
+                let bias = searchBiases[index];
+
+                console.log(bias);
+                console.log(src);
+
+                console.log('https://0z5mfmbfbd.execute-api.us-east-1.amazonaws.com/geturls?url='+url+'&summary='+headline+'&date='+time+'&bias='+bias+'&source='+src)
+
+                await fetch('https://0z5mfmbfbd.execute-api.us-east-1.amazonaws.com/geturls?url='+url+'&summary='+headline+'&date='+time+'&bias='+bias+'&source='+src)
+                .then((urlsResponse) => urlsResponse.json())
+                .then(
+                    (urlsResponse) => {
+
+                        alternativeURLs = alternativeURLs.concat(urlsResponse.url);
+                        alternativeSources = alternativeSources.concat(urlsResponse.source);
+                        alternativeBiases = alternativeBiases.concat(urlsResponse.bias);
+
+                        console.log(alternativeURLs);
+                        console.log(index);
+                    })
+
+                await new Promise(r => setTimeout(r, 3000));
+            };
+
+            return;
+        })
+    .then(
+        (placeholder) => {
+
+            console.log(alternativeURLs);
+            console.log(alternativeSources);
+            console.log(alternativeBiases);
+
+            var urlsString = "";
+            var sourcesString = "";
+            var biasesString = "";
+            alternativeURLs.forEach(
+                function(u, index, array) {
+                    let s = alternativeSources[index];
+                    let b = alternativeBiases[index];
+
+                    if (index === 0) {
+                        urlsString = urlsString + '?urls=' + u;
+                        sourcesString = sourcesString + '&sources=' + s;
+                        biasesString = biasesString + '&biases=' + b;
+                    }
+                    else {
+                        urlsString = urlsString + '&urls=' + u;
+                        sourcesString = sourcesString + '&sources=' + s;
+                        biasesString = biasesString + '&biases=' + b;
+                    }
+                });
+
+            console.log(urlsString);
+            console.log(sourcesString);
+            console.log(biasesString);
+
+            return fetch('https://0z5mfmbfbd.execute-api.us-east-1.amazonaws.com/getarticles'+ urlsString + sourcesString + biasesString);
+        })
+    .then(
+        (articlesResponse) => {
+            if (articlesResponse.status !== 200) {
+                console.log('Looks like there was a problem. Status Code: ' + articlesResponse.status);
+                document.getElementById("article-header").innerHTML = `Alternative Articles not available.`;
+                document.getElementById("article-body").innerHTML = "You may be seeing this error because...<br><ul><li>No relevant results have been found.</li><li>Too many requests have been made.</li><li>You have found an edge case we didn't account for.</li></ul>";                return;
+            }
+            return articlesResponse.json()
+        })
+    .then(
+        (articlesResponse) => {
+
+            console.log(articlesResponse);
+
+            altTexts = articlesResponse.updated_texts;
+            altTitles = articlesResponse.updated_titles;
+            altURLs = articlesResponse.updated_urls;
+            altSources = articlesResponse.updated_sources;
+            altBiases = articlesResponse.updated_bias;
+
+            if (altTexts.length === 0) {
+                document.getElementById("article-header").innerHTML = `Alternative Articles not available.`;
+                document.getElementById("article-body").innerHTML = "You may be seeing this error because...<br><ul><li>No relevant results have been found.</li><li>You have found an edge case we didn't account for.</li></ul>";
+            }
+            if (altTexts.length >= 1) {
+                document.getElementById('article-header').innerHTML = `Alternative Articles:`;
+
+                document.getElementById('source-1').innerHTML = `${altSources[0]}: `;
+                document.getElementById('title-1').innerHTML = `<a href = ${altURLs[0]}>${altTitles[0]}</a>`;
+
+                showSummary(altTexts[0], "summary-1")
+
+            }
+            if (altTexts.length >= 2) {
+                document.getElementById('source-2').innerHTML = `${altSources[1]}: `;
+                document.getElementById('title-2').innerHTML = `<a href = ${altURLs[1]}>${altTitles[1]}</a>`;
+
+                showSummary(altTexts[1], "summary-2")
+            }
+            if (altTexts.length >= 3) {
+                document.getElementById('source-3').innerHTML = `${altSources[2]}: `;
+                document.getElementById('title-3').innerHTML = `<a href = ${altURLs[2]}>${altTitles[2]}</a>`;
+
+                showSummary(altTexts[2], "summary-3")
+            }
+        })
+        .catch((err) => console.log('Fetch Error :-S', err));
+
 }
 
 function showBiasDetail() {
-  //var dots = document.getElementById("dots");
   const moreText = document.getElementById("bias-detail-more");
   const btnText = document.getElementById("learn-more");
 
@@ -270,9 +360,27 @@ function showBiasDetail() {
     btnText.innerHTML = "Less";
     moreText.style.display = "inline";
   } else {
-    btnText.innerHTML = "Learn more";
+    btnText.innerHTML = "More";
     moreText.style.display = "none";
   }
+}
+
+function showSummary(text, id) {
+    document.getElementById(id).innerHTML = `Short summary is loading...`;
+    fetch('https://0z5mfmbfbd.execute-api.us-east-1.amazonaws.com/getsummary?text='+text)
+    .then(
+        (summaryResponse) => {
+            if (summaryResponse.status !== 200) {
+                console.log('Looks like there was a problem. Status Code: ' + summaryResponse.status);
+                document.getElementById(id).innerHTML = "Could not get article summary.";
+                return;
+            }
+            return summaryResponse.json();
+        })
+    .then(
+        (summaryResponse) => {
+            document.getElementById(id).innerHTML = `${summaryResponse.summary}`;
+        })
 }
 
 
@@ -348,7 +456,7 @@ function getColorGradient(score, interval) {
 		start_color = "#808080"; //grey
 	}
 	if (interval === "center"){
-		end_color = "#808080"; //red
+		end_color = "#808080"; //grey
 		start_color = "#808080"; //grey
 	}
    // strip the leading # if it's there
