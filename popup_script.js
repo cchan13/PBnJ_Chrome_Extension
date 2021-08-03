@@ -329,20 +329,26 @@ function showAlternativeArticles() {
             if (altTexts.length >= 1) {
                 document.getElementById('article-header').innerHTML = `Alternative Articles:`;
 
-                document.getElementById('source-1').innerHTML = `${altSources[0]}: `;
+                let s1 = document.getElementById('source-1');
+                s1.innerHTML = `${altSources[0]}: `;
+                s1.style.color = getColorGradient(100, transformClassToInterval(altBiases[0]));
                 document.getElementById('title-1').innerHTML = `<a href = ${altURLs[0]}>${altTitles[0]}</a>`;
 
                 showSummary(altTexts[0], "summary-1")
 
             }
             if (altTexts.length >= 2) {
-                document.getElementById('source-2').innerHTML = `${altSources[1]}: `;
+                let s2 = document.getElementById('source-2');
+                s2.innerHTML = `${altSources[1]}: `;
+                s2.style.color = getColorGradient(100, transformClassToInterval(altBiases[1]));
                 document.getElementById('title-2').innerHTML = `<a href = ${altURLs[1]}>${altTitles[1]}</a>`;
 
                 showSummary(altTexts[1], "summary-2")
             }
             if (altTexts.length >= 3) {
-                document.getElementById('source-3').innerHTML = `${altSources[2]}: `;
+                let s3 = document.getElementById('source-3');
+                s3.innerHTML = `${altSources[2]}: `;
+                s3.style.color = getColorGradient(100, transformClassToInterval(altBiases[2]));
                 document.getElementById('title-3').innerHTML = `<a href = ${altURLs[2]}>${altTitles[2]}</a>`;
 
                 showSummary(altTexts[2], "summary-3")
@@ -408,14 +414,24 @@ function getX(score, interval){
 }
 
 function transformscoretointerval(label){
-	if(label === 1){
-		return "leftcenter";
-	}
-	if(label === 2){
-		return "rightcenter";
-	}
-	return "center";
-}
+ 	if(label === 1){
+ 		return "leftcenter";
+ 	}
+ 	if(label === 2){
+ 		return "rightcenter";
+ 	}
+ 	return "center";
+ }
+
+ function transformClassToInterval(bias){
+ 	if(label === "left"){
+ 		return "leftcenter";
+ 	}
+ 	if(label === "right"){
+ 		return "rightcenter";
+ 	}
+ 	return "center";
+ }
 
 
 function calculateScore(n, problist, interval){
