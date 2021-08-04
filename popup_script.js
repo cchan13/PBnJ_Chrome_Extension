@@ -51,7 +51,9 @@ chrome.tabs.query({currentWindow: true, active: true}, (tabs) => {
                     console.log('Looks like there was a problem. Status Code: ' + classifierResponse.status);
                     document.getElementById("score").innerHTML = "not available.";
                     document.getElementById("analysis-header").innerHTML = "Sentence-Level Analysis is not available.";
+                    document.getElementById("sentbiasis1").innerHTML = "You may be seeing this error because...<br><ul><li>Your request timed out.</li><li>Too many requests have been made. Please try again later.</li><li>You have found an edge case we didn't account for.</li></ul>";
                     document.getElementById("bias-header").innerHTML = "Most biased sentences are not available.";
+                    document.getElementById("sentbiastext1").innerHTML = "You may be seeing this error because...<br><ul><li>Your request timed out.</li><li>Too many requests have been made. Please try again later.</li><li>You have found an edge case we didn't account for.</li></ul>";
                     return;
                 }
                 return classifierResponse.json();
@@ -75,7 +77,9 @@ chrome.tabs.query({currentWindow: true, active: true}, (tabs) => {
                 if (sentencesResponse.status !== 200) {
                     console.log('Looks like there was a problem. Status Code: ' + sentencesResponse.status);
                     document.getElementById("analysis-header").innerHTML = "Sentence-Level Analysis is not available.";
+                    document.getElementById("sentbiasis1").innerHTML = "You may be seeing this error because...<br><ul><li>Your request timed out.</li><li>Too many requests have been made. Please try again later.</li><li>You have found an edge case we didn't account for.</li></ul>";
                     document.getElementById("bias-header").innerHTML = "Most biased sentences are not available.";
+                    document.getElementById("sentbiastext1").innerHTML = "You may be seeing this error because...<br><ul><li>Your request timed out.</li><li>Too many requests have been made. Please try again later.</li><li>You have found an edge case we didn't account for.</li></ul>";
                     return;
                 }
                 return sentencesResponse.json();
@@ -205,32 +209,31 @@ function showAlternativeArticles() {
     var alternativeSources = [];
     var alternativeBiases = [];
 
-    fetch('https://0z5mfmbfbd.execute-api.us-east-1.amazonaws.com/getsummary?text='+articleText)
-    .then(
-        (summaryResponse) => {
-            if (summaryResponse.status !== 200) {
-                console.log('Looks like there was a problem. Status Code: ' + summaryResponse.status);
-                document.getElementById("article-header").innerHTML = `Alternative Articles not available.`;
-                document.getElementById("article-body").innerHTML = "You may be seeing this error because...<br><ul><li>No relevant results have been found.</li><li>Too many requests have been made.</li><li>You have found an edge case we didn't account for.</li></ul>";
-                return;
-            }
-            return summaryResponse.json()
-        })
-    .then(
-        (summaryResponse) => {
-            searchSummary = summaryResponse.summary;
-            console.log(searchSummary);
-            return fetch('https://0z5mfmbfbd.execute-api.us-east-1.amazonaws.com/getsources?label='+label)
-        })
-
-//    searchSummary = "Kinzinger: 'Significant amount' of subpoenas likely in Jan. 6 probe";
-//    fetch('https://0z5mfmbfbd.execute-api.us-east-1.amazonaws.com/getsources?label='+label)
+//    fetch('https://0z5mfmbfbd.execute-api.us-east-1.amazonaws.com/getsummary?text='+articleText)
+//    .then(
+//        (summaryResponse) => {
+//            if (summaryResponse.status !== 200) {
+//                console.log('Looks like there was a problem. Status Code: ' + summaryResponse.status);
+//                document.getElementById("article-header").innerHTML = `Alternative Articles not available.`;
+//                document.getElementById("article-body").innerHTML = "You may be seeing this error because...<br><ul><li>No relevant results have been found.</li><li>Too many requests have been made. Please try again later.</li><li>You have found an edge case we didn't account for.</li></ul>";
+//                return;
+//            }
+//            return summaryResponse.json()
+//        })
+//    .then(
+//        (summaryResponse) => {
+//            searchSummary = summaryResponse.summary;
+//            console.log(searchSummary);
+//            return fetch('https://0z5mfmbfbd.execute-api.us-east-1.amazonaws.com/getsources?label='+label)
+//        })
+    fetch('https://0z5mfmbfbd.execute-api.us-east-1.amazonaws.com/getsources?label='+label)
     .then(
         (sourcesResponse) => {
             if (sourcesResponse.status !== 200) {
                 console.log('Looks like there was a problem. Status Code: ' + sourcesResponse.status);
                 document.getElementById("article-header").innerHTML = `Alternative Articles not available.`;
-                document.getElementById("article-body").innerHTML = "You may be seeing this error because...<br><ul><li>No relevant results have been found.</li><li>Too many requests have been made.</li><li>You have found an edge case we didn't account for.</li></ul>";                return;
+                document.getElementById("article-body").innerHTML = "You may be seeing this error because...<br><ul><li>No relevant results have been found.</li><li>Too many requests have been made. Please try again later.</li><li>You have found an edge case we didn't account for.</li></ul>";
+                return;
             }
             return sourcesResponse.json()
         })
@@ -246,16 +249,12 @@ function showAlternativeArticles() {
             for (let [index, src] of searchSources.entries()) {
                 let bias = searchBiases[index];
 
-                console.log(bias);
-                console.log(src);
-
-                console.log('https://0z5mfmbfbd.execute-api.us-east-1.amazonaws.com/geturls?url='+url+'&summary='+headline+'&date='+time+'&bias='+bias+'&source='+src)
+                //console.log('https://0z5mfmbfbd.execute-api.us-east-1.amazonaws.com/geturls?url='+url+'&summary='+headline+'&date='+time+'&bias='+bias+'&source='+src)
 
                 await fetch('https://0z5mfmbfbd.execute-api.us-east-1.amazonaws.com/geturls?url='+url+'&summary='+headline+'&date='+time+'&bias='+bias+'&source='+src)
                 .then((urlsResponse) => urlsResponse.json())
                 .then(
                     (urlsResponse) => {
-
                         alternativeURLs = alternativeURLs.concat(urlsResponse.url);
                         alternativeSources = alternativeSources.concat(urlsResponse.source);
                         alternativeBiases = alternativeBiases.concat(urlsResponse.bias);
@@ -263,6 +262,7 @@ function showAlternativeArticles() {
                         console.log(alternativeURLs);
                         console.log(index);
                     })
+                .catch((err) => console.log('Fetch Error :-S', err));
 
                 await new Promise(r => setTimeout(r, 1500));
             };
@@ -307,7 +307,8 @@ function showAlternativeArticles() {
             if (articlesResponse.status !== 200) {
                 console.log('Looks like there was a problem. Status Code: ' + articlesResponse.status);
                 document.getElementById("article-header").innerHTML = `Alternative Articles not available.`;
-                document.getElementById("article-body").innerHTML = "You may be seeing this error because...<br><ul><li>No relevant results have been found.</li><li>Too many requests have been made.</li><li>You have found an edge case we didn't account for.</li></ul>";                return;
+                document.getElementById("article-body").innerHTML = "You may be seeing this error because...<br><ul><li>No relevant results have been found.</li><li>Too many requests have been made. Please try again later.</li><li>You have found an edge case we didn't account for.</li></ul>";
+                return;
             }
             return articlesResponse.json()
         })
@@ -373,6 +374,9 @@ function showBiasDetail() {
 
 function showSummary(text, id) {
     document.getElementById(id).innerHTML = `Short summary is loading...`;
+
+    text = shortenText(text)
+
     fetch('https://0z5mfmbfbd.execute-api.us-east-1.amazonaws.com/getsummary?text='+text)
     .then(
         (summaryResponse) => {
@@ -385,8 +389,15 @@ function showSummary(text, id) {
         })
     .then(
         (summaryResponse) => {
+            if (summaryResponse.summary.length === 0) {
+                document.getElementById(id).innerHTML = "Could not get article summary. This article may be too short to summarize.";
+                return;
+            }
+            console.log(summaryResponse);
             document.getElementById(id).innerHTML = `<mark>Highlights:</mark> ${summaryResponse.summary}`;
+            return;
         })
+    .catch((err) => console.log('Fetch Error :-S', err));
 }
 
 
