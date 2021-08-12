@@ -1,4 +1,5 @@
-# CapstoneChromeExt
+# PBnJ Chrome Extension
+Fighting the effects of Political Bias in Journalism
 
 If you would like to try the extension in your browser, please follow the steps listed below.
 
